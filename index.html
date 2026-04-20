@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Newheat — Assistant Contenu IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0E1209; --surface: #161C0F; --surface2: #1C2414; --surface3: #222C18;
+  --border: rgba(255,255,255,0.07); --border-md: rgba(255,255,255,0.12); --border-strong: rgba(255,255,255,0.18);
+  --text: #EEF0E8; --text-muted: #8A9180; --text-faint: #4A5242;
+  --accent: #7EC842; --accent-dim: rgba(126,200,66,0.12); --accent-border: rgba(126,200,66,0.3); --accent-dark: #5A9B28;
+  --warm: #D4913A; --warm-dim: rgba(212,145,58,0.1);
+  --radius: 10px; --radius-lg: 16px;
+}
+body { font-family: 'Geist', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+.header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-flame { width: 28px; height: 28px; border-radius: 8px; background: var(--accent-dim); border: 1px solid var(--accent-border); display: flex; align-items: center; justify-content: center; }
+.logo-flame svg { width: 15px; height: 15px; }
+.brand-name { font-family: 'Instrument Serif', serif; font-size: 17px; color: var(--text); }
+.brand-tag { font-size: 11px; color: var(--text-faint); font-weight: 300; }
+.api-key-zone { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; }
+.layout { display: grid; grid-template-columns: 300px 1fr; flex: 1; overflow: hidden; min-height: 0; }
+.sidebar { background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 2px; }
+.param-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; display: block; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border-md); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.1s; user-select: none; }
+.chip:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+.chip.sel { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); font-weight: 500; }
+.chip.sel-warm { background: var(--warm-dim); border-color: rgba(212,145,58,0.3); color: var(--warm); font-weight: 500; }
+.sel-wrap { position: relative; }
+.sel-wrap select { width: 100%; padding: 7px 28px 7px 10px; font-size: 12px; font-family: 'Geist', sans-serif; background: var(--surface2); border: 1px solid var(--border-md); border-radius: var(--radius); color: var(--text); outline: none; appearance: none; cursor: pointer; }
+.sel-wrap select:focus { border-color: var(--accent-border); }
+.sel-wrap::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid var(--text-faint); pointer-events: none; }
+.sel-wrap select option { color: var(--text); background: var(--surface2); }
+.seo-input { width: 100%; padding: 7px 10px; font-size: 12px; font-family: 'Geist', sans-serif; background: var(--surface2); border: 1px solid var(--accent-border); border-radius: var(--radius); color: var(--text); outline: none; }
+.seo-input:focus { border-color: var(--accent); }
+.seo-input::placeholder { color: var(--text-faint); }
+textarea.ctx-input { width: 100%; padding: 7px 10px; font-size: 12px; font-family: 'Geist', sans-serif; background: var(--surface2); border: 1px solid var(--border-md); border-radius: var(--radius); color: var(--text); outline: none; resize: none; line-height: 1.5; }
+textarea.ctx-input:focus { border-color: var(--accent-border); }
+textarea.ctx-input::placeholder { color: var(--text-faint); }
+.sidebar-divider { border: none; border-top: 1px solid var(--border); }
+.mode-grid { display: grid; grid-template-columns: 1fr; gap: 5px; }
+.mode-card { padding: 9px 11px; border-radius: var(--radius); border: 1px solid var(--border-md); cursor: pointer; transition: all 0.12s; background: transparent; text-align: left; }
+.mode-card:hover, .mode-card.active { border-color: var(--accent-border); background: var(--accent-dim); }
+.mode-card-title { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 1px; }
+.mode-card.active .mode-card-title { color: var(--accent); }
+.mode-card-desc { font-size: 10px; color: var(--text-faint); line-height: 1.4; }
+.gen-btn-wrap { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 12px 16px; margin: 0 -16px; }
+.gen-btn { width: 100%; padding: 11px; font-size: 13px; font-weight: 600; font-family: 'Geist', sans-serif; background: var(--accent); color: #0E1209; border: none; border-radius: var(--radius); cursor: pointer; transition: all 0.12s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.gen-btn:hover { background: #8ED94F; }
+.gen-btn:disabled { background: var(--surface3); color: var(--text-faint); cursor: not-allowed; }
+.gen-btn .spinner { width: 14px; height: 14px; border: 2px solid rgba(14,18,9,0.3); border-top-color: #0E1209; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.main { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.output-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.output-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.output-meta { font-size: 11px; color: var(--text-faint); }
+.output-actions { display: flex; gap: 6px; }
+.out-btn { font-size: 11px; font-weight: 500; padding: 5px 11px; border: 1px solid var(--border-md); border-radius: 8px; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.1s; font-family: 'Geist', sans-serif; display: flex; align-items: center; gap: 5px; }
+.out-btn:hover { border-color: var(--border-strong); color: var(--text); background: var(--surface2); }
+.out-btn.copied { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+.output-body { flex: 1; overflow-y: auto; padding: 24px; }
+.output-body::-webkit-scrollbar { width: 3px; }
+.output-body::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 2px; }
+.empty-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 40px; }
+.empty-icon { width: 52px; height: 52px; border-radius: 13px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+.empty-title { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+.empty-sub { font-size: 12px; color: var(--text-faint); line-height: 1.6; max-width: 340px; }
+.stream-content { font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-wrap; word-break: break-word; max-width: 760px; }
+.stream-content h1, .stream-content h2, .stream-content h3 { font-family: 'Instrument Serif', serif; margin: 1.4em 0 0.5em; color: var(--text); }
+.stream-content h1 { font-size: 22px; }
+.stream-content h2 { font-size: 17px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+.stream-content h3 { font-size: 15px; color: var(--accent); }
+.stream-content strong { color: var(--text); font-weight: 600; }
+.stream-content em { color: var(--text-muted); font-style: italic; }
+.stream-content ul, .stream-content ol { padding-left: 20px; margin: 8px 0; }
+.stream-content li { margin: 4px 0; }
+.stream-content blockquote { border-left: 2px solid var(--accent-border); padding: 10px 14px; margin: 10px 0; background: var(--surface2); border-radius: 0 var(--radius) var(--radius) 0; color: var(--text-muted); font-style: italic; }
+.stream-content hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+.loading-bar { height: 2px; background: var(--surface3); border-radius: 1px; margin-bottom: 20px; overflow: hidden; max-width: 760px; }
+.loading-bar-inner { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); border-radius: 1px; animation: loadingPulse 1.5s ease-in-out infinite; }
+@keyframes loadingPulse { 0% { width:0%;margin-left:0; } 50% { width:60%;margin-left:20%; } 100% { width:0%;margin-left:100%; } }
+.history-strip { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; gap: 6px; align-items: center; overflow-x: auto; flex-shrink: 0; }
+.history-strip::-webkit-scrollbar { height: 0; }
+.hist-chip { font-size: 11px; padding: 3px 9px; border-radius: 20px; white-space: nowrap; border: 1px solid var(--border); color: var(--text-faint); cursor: pointer; background: transparent; transition: all 0.1s; flex-shrink: 0; }
+.hist-chip.current { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+.hist-label { font-size: 11px; color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
+.word-count { font-size: 11px; color: var(--text-faint); margin-top: 10px; max-width: 760px; text-align: right; }
+.themes-grid { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.theme-card { background: var(--surface); border: 1px solid var(--border-md); border-radius: var(--radius-lg); padding: 14px 16px; transition: border-color 0.12s; }
+.theme-card:hover { border-color: var(--accent-border); background: var(--surface2); }
+.theme-card-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 7px; }
+.theme-num { font-size: 11px; font-weight: 600; color: var(--accent); min-width: 20px; flex-shrink: 0; margin-top: 1px; }
+.theme-title { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; line-height: 1.4; }
+.theme-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; padding-left: 26px; }
+.theme-tag { font-size: 10px; padding: 2px 7px; border-radius: 8px; background: var(--surface3); color: var(--text-muted); border: 1px solid var(--border); }
+.theme-tag.format { background: var(--warm-dim); color: var(--warm); border-color: rgba(212,145,58,0.2); }
+.theme-tag.conscience { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-border); }
+.theme-tag.seo-kw { background: rgba(91,155,213,0.1); color: #5B9BD5; border-color: rgba(91,155,213,0.25); font-style: italic; }
+.theme-angle { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; padding-left: 26px; margin-bottom: 10px; }
+.theme-actions { display: flex; gap: 6px; padding-left: 26px; }
+.theme-btn { font-size: 11px; font-weight: 500; padding: 5px 11px; border-radius: 7px; border: 1px solid var(--border-md); background: transparent; color: var(--text-muted); cursor: pointer; font-family: 'Geist', sans-serif; transition: all 0.1s; }
+.theme-btn.linkedin { border-color: rgba(10,102,194,0.3); color: #5B9BD5; background: rgba(10,102,194,0.06); }
+.theme-btn.blog { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+.breadcrumb-back { font-size: 11px; color: var(--text-faint); cursor: pointer; padding: 2px 6px; border-radius: 5px; border: 1px solid transparent; transition: all 0.1s; }
+.breadcrumb-back:hover { color: var(--text-muted); border-color: var(--border); background: var(--surface3); }
+
+/* MOBILE */
+@media (min-width: 801px) {
+  .gen-btn-wrap { position: static; background: none; border-top: none; padding: 0; margin: 0; }
+}
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  .header { flex-wrap: wrap; padding: 12px 16px; gap: 8px; }
+
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); overflow-y: visible; padding-bottom: 0; }
+  .main { overflow: visible; }
+  .output-body { overflow: visible; padding: 16px; }
+  .mode-grid { display: flex; flex-direction: row; overflow-x: auto; gap: 8px; padding-bottom: 4px; }
+  .mode-card { flex-shrink: 0; min-width: 140px; }
+  .themes-grid, .stream-content { max-width: 100%; }
+  .output-header { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-flame">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M8 1C8 1 4 5.5 4 9.5C4 11.98 5.8 14 8 14C10.2 14 12 11.98 12 9.5C12 5.5 8 1 8 1Z" fill="#7EC842" opacity="0.9"/>
+        <path d="M8 7.5C8 7.5 6.5 9 6.5 10.5C6.5 11.33 7.17 12 8 12C8.83 12 9.5 11.33 9.5 10.5C9.5 9 8 7.5 8 7.5Z" fill="#7EC842" opacity="0.4"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">Newheat</div>
+      <div class="brand-tag">Assistant Contenu IA</div>
+    </div>
+  </div>
+  <div class="api-key-zone">
+    <span style="font-size:11px;color:rgba(126,200,66,0.7);display:flex;align-items:center;gap:5px;">
+      <span style="width:7px;height:7px;border-radius:50%;background:#7EC842;display:inline-block;"></span>
+      Connecté via Cloudflare
+    </span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="param-block">
+      <span class="param-label">Type de contenu</span>
+      <div class="mode-grid" id="mode-grid">
+        <div class="mode-card active" data-mode="themes">
+          <div class="mode-card-title">💡 Idées de thèmes</div>
+          <div class="mode-card-desc">10 thèmes avec format et maturité prospect</div>
+        </div>
+        <div class="mode-card" data-mode="linkedin">
+          <div class="mode-card-title">🔗 Post LinkedIn</div>
+          <div class="mode-card-desc">2 variantes A/B, 150–250 mots</div>
+        </div>
+        <div class="mode-card" data-mode="blog">
+          <div class="mode-card-title">📝 Article de blog</div>
+          <div class="mode-card-desc">~1200 mots, optimisé SEO</div>
+        </div>
+      </div>
+    </div>
+    <hr class="sidebar-divider">
+    <div class="param-block">
+      <span class="param-label">Solution technique</span>
+      <div class="sel-wrap">
+        <select id="solution-sel">
+          <option value="">— Choisir —</option>
+          <optgroup label="Chaleur renouvelable">
+            <option value="solar">Solaire thermique</option>
+            <option value="rcr">Récupération de chaleur fatale</option>
+            <option value="geo">Géothermie</option>
+            <option value="hp">Pompe à chaleur industrielle</option>
+            <option value="biomasse">Biomasse / chaudière biomasse</option>
+          </optgroup>
+          <optgroup label="Électrification">
+            <option value="elec">Chaudière électrique</option>
+            <option value="elec_storage">Chaudière élec. + stockage thermique</option>
+            <option value="elec_flex">Chaudière élec. + stockage + flexibilité</option>
+          </optgroup>
+          <optgroup label="Stockage & flexibilité">
+            <option value="storage">Stockage thermique (standalone)</option>
+            <option value="flex">Flexibilité électrique / effacement</option>
+          </optgroup>
+          <optgroup label="Modèles contractuels">
+            <option value="hpa">Contrat HPA gaz-indexé</option>
+            <option value="tiers_inv">Modèle tiers-investisseur</option>
+          </optgroup>
+          <optgroup label="Combiné">
+            <option value="multi">Multi-technologies / mix bas carbone</option>
+            <option value="hybride">Solution hybride</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="param-block">
+      <span class="param-label">Type de site</span>
+      <div class="sel-wrap">
+        <select id="site-sel">
+          <option value="">— Choisir —</option>
+          <optgroup label="Secteurs génériques">
+            <option value="industrie">Industriel (process générique)</option>
+            <option value="agroalim">Agroalimentaire (générique)</option>
+            <option value="chimie">Chimie / pharmacie</option>
+            <option value="rcu">Réseau de chaleur urbain</option>
+            <option value="tertiaire">Tertiaire / bureaux</option>
+            <option value="logistique">Entrepôt / logistique</option>
+          </optgroup>
+          <optgroup label="Segments agroalimentaires">
+            <option value="laiterie">Laiteries / produits laitiers frais</option>
+            <option value="dairy_powders">Dairy powders (poudres de lait / whey)</option>
+            <option value="ingredients">Ingrédients alimentaires</option>
+            <option value="sechage_bois">Séchage de bois / biomasse</option>
+            <option value="serres">Serres maraîchères / horticulture</option>
+            <option value="brasserie">Brasserie</option>
+            <option value="malterie">Malterie</option>
+            <option value="distillerie">Distillerie / spiritueux</option>
+            <option value="conserverie">Conserverie / stérilisation</option>
+            <option value="boulangerie">Boulangerie industrielle</option>
+            <option value="viande">Abattoir / transformation viande</option>
+            <option value="legumes">Transformation légumes / fruits</option>
+          </optgroup>
+          <optgroup label="Autres industries">
+            <option value="papier">Papier / carton / cellulose</option>
+            <option value="textile">Textile / teinture</option>
+            <option value="plastiques">Plastiques / caoutchouc</option>
+            <option value="ceramique">Céramique / verre</option>
+            <option value="briques">Briques et tuiles</option>
+            <option value="metallurgie">Métallurgie / traitement de surface</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="param-block">
+      <span class="param-label">Persona(s) — multi-sélection</span>
+      <div class="chips" id="persona-chips">
+        <div class="chip" data-val="daf" data-g="persona">DAF</div>
+        <div class="chip" data-val="dg" data-g="persona">DG / PDG</div>
+        <div class="chip" data-val="dsi" data-g="persona">Dir. industriel</div>
+        <div class="chip" data-val="rse" data-g="persona">Resp. RSE / énergie</div>
+        <div class="chip" data-val="dtu" data-g="persona">Dir. technique</div>
+        <div class="chip" data-val="collectivite" data-g="persona">Collectivité</div>
+      </div>
+    </div>
+    <hr class="sidebar-divider">
+    <div class="param-block">
+      <span class="param-label">Angle de message</span>
+      <div class="sel-wrap">
+        <select id="angle-sel">
+          <option value="cout">Maîtrise des coûts énergie</option>
+          <option value="volatilite">Éliminer la volatilité gaz</option>
+          <option value="decarbonation">Décarbonation / bilan carbone</option>
+          <option value="conformite">Conformité réglementaire</option>
+          <option value="competitivite">Compétitivité industrielle</option>
+          <option value="cas_client">Retour d'expérience client</option>
+        </select>
+      </div>
+    </div>
+    <div class="param-block">
+      <span class="param-label">Ton</span>
+      <div class="sel-wrap">
+        <select id="ton-sel">
+          <option value="expert">Expert et pédagogique</option>
+          <option value="direct">Direct et efficace</option>
+          <option value="narratif">Narratif (storytelling)</option>
+          <option value="provocateur">Provocateur</option>
+          <option value="chiffres">Orienté preuves / chiffres</option>
+        </select>
+      </div>
+    </div>
+    <div class="param-block">
+      <span class="param-label">Contexte (optionnel)</span>
+      <textarea class="ctx-input" id="ctx-input" rows="2" placeholder="ex : client grand compte, post-hausse gaz…"></textarea>
+    </div>
+    <div class="param-block" id="seo-block">
+      <span class="param-label" style="display:flex;align-items:center;gap:5px;">
+        Mot-clé SEO
+        <span style="font-size:9px;padding:1px 5px;border-radius:7px;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border);font-weight:500;text-transform:none;letter-spacing:0;">Blog</span>
+      </span>
+      <input type="text" class="seo-input" id="seo-input" placeholder="ex : récupération chaleur fatale agroalimentaire" />
+    </div>
+    <div class="gen-btn-wrap">
+      <button class="gen-btn" id="gen-btn" onclick="generate()">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.5 5.5L13 7L8.5 8.5L7 13L5.5 8.5L1 7L5.5 5.5L7 1Z" fill="#0E1209"/></svg>
+        Générer le contenu
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="output-header">
+      <div>
+        <div class="output-title" id="output-title">Résultat</div>
+        <div class="output-meta" id="output-meta">Configurez les paramètres et lancez la génération</div>
+      </div>
+      <div class="output-actions">
+        <button class="out-btn" id="copy-btn" onclick="copyOutput()" style="display:none">Copier</button>
+        <button class="out-btn" id="regen-btn" onclick="generate()" style="display:none">Regénérer</button>
+      </div>
+    </div>
+    <div class="output-body" id="output-body">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">
+          <svg width="24" height="24" viewBox="0 0 26 26" fill="none">
+            <path d="M13 3C13 3 8 9 8 14.5C8 17.5 10.2 20 13 20C15.8 20 18 17.5 18 14.5C18 9 13 3 13 3Z" fill="#4A5242"/>
+            <path d="M13 12C13 12 11 14 11 15.8C11 16.9 11.9 17.8 13 17.8C14.1 17.8 15 16.9 15 15.8C15 14 13 12 13 12Z" fill="#7EC842" opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="empty-title">Prêt à générer</div>
+        <div class="empty-sub">Sélectionne une solution, un type de site et un persona, puis clique sur Générer.</div>
+      </div>
+      <div id="stream-out" style="display:none"></div>
+    </div>
+    <div class="history-strip" id="history-strip" style="display:none">
+      <span class="hist-label">Historique :</span>
+      <div id="hist-chips"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const LABELS = {
+  solution: { solar:'solaire thermique', rcr:'récupération de chaleur fatale', geo:'géothermie', hp:'pompe à chaleur industrielle', biomasse:'biomasse / chaudière biomasse', elec:'chaudière électrique', elec_storage:'chaudière électrique + stockage thermique', elec_flex:'chaudière électrique + stockage + flexibilité électrique', storage:'stockage thermique (standalone)', flex:'flexibilité électrique / effacement', hpa:'contrat HPA gaz-indexé', tiers_inv:'modèle tiers-investisseur (opérateur)', multi:'multi-technologies / mix bas carbone', hybride:'solution hybride (renouvelable + appoint)' },
+  site: { industrie:'site industriel (process générique)', agroalim:'agroalimentaire (générique)', chimie:'chimie / pharmacie', rcu:'réseau de chaleur urbain', tertiaire:'tertiaire / bureaux', logistique:'entrepôt / logistique', laiterie:'laiteries / produits laitiers frais', dairy_powders:'dairy powders (poudres de lait, whey)', ingredients:'ingrédients alimentaires', sechage_bois:'séchage de bois / biomasse', serres:'serres maraîchères / horticulture', brasserie:'brasserie', malterie:'malterie', distillerie:'distillerie / spiritueux', conserverie:'conserverie / stérilisation', boulangerie:'boulangerie industrielle / pâtisserie', viande:'abattoir / transformation de viande', legumes:'transformation de légumes et fruits', papier:'papier / carton / cellulose', textile:'textile / teinture', plastiques:'plastiques / caoutchouc', ceramique:'céramique / verre', briques:'briques et tuiles', metallurgie:'métallurgie / traitement de surface' },
+  persona: { daf:'DAF / directeur financier', dg:'DG / PDG', dsi:'directeur industriel', rse:'responsable RSE ou énergie', dtu:'directeur technique / travaux', collectivite:'collectivité / aménageur' },
+  angle: { cout:'maîtrise des coûts énergie', volatilite:'élimination de la volatilité gaz', decarbonation:'décarbonation / bilan carbone', conformite:'conformité réglementaire', competitivite:'compétitivité industrielle', cas_client:"retour d'expérience client" },
+  ton: { expert:'expert et pédagogique', direct:'direct et efficace', narratif:'narratif (storytelling)', provocateur:'provocateur (contre idées reçues)', chiffres:'orienté chiffres et preuves' },
+  mode: { themes:'💡 Idées de thèmes', linkedin:'🔗 Post LinkedIn', blog:'📝 Article de blog' }
+};
+
+const state = { solution: null, site: null, personas: [], angle: 'cout', ton: 'expert', ctx: '', seo: '', mode: 'themes' };
+const history = [];
+let currentOutput = '', generating = false, lastThemes = [];
+
+document.getElementById('solution-sel').addEventListener('change', e => { state.solution = e.target.value || null; });
+document.getElementById('site-sel').addEventListener('change', e => { state.site = e.target.value || null; });
+document.querySelectorAll('.chip[data-g="persona"]').forEach(c => {
+  c.addEventListener('click', () => {
+    c.classList.toggle('sel-warm');
+    const v = c.dataset.val;
+    state.personas = state.personas.includes(v) ? state.personas.filter(x => x !== v) : [...state.personas, v];
+  });
+});
+document.querySelectorAll('.mode-card').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.mode-card').forEach(x => x.classList.remove('active'));
+    c.classList.add('active'); state.mode = c.dataset.mode; updateSeoVisibility();
+  });
+});
+document.getElementById('angle-sel').addEventListener('change', e => state.angle = e.target.value);
+document.getElementById('ton-sel').addEventListener('change', e => state.ton = e.target.value);
+document.getElementById('ctx-input').addEventListener('input', e => state.ctx = e.target.value);
+document.getElementById('seo-input').addEventListener('input', e => state.seo = e.target.value);
+
+function updateSeoVisibility() {
+  const b = document.getElementById('seo-block');
+  b.style.opacity = state.mode === 'blog' ? '1' : '0.35';
+  b.style.pointerEvents = state.mode === 'blog' ? 'auto' : 'none';
+}
+updateSeoVisibility();
+
+// API key managed server-side via Cloudflare Worker proxy
+
+function buildPrompt(overrideTheme) {
+  const sol = state.solution ? LABELS.solution[state.solution] : 'non précisée';
+  const site = state.site ? LABELS.site[state.site] : 'non précisé';
+  const personas = state.personas.length ? state.personas.map(p => LABELS.persona[p]).join(', ') : 'non précisé';
+  const angle = LABELS.angle[state.angle];
+  const ton = LABELS.ton[state.ton];
+  const ctx = state.ctx.trim() ? '\nContexte : ' + state.ctx.trim() : '';
+  const base = `Paramètres :\n- Solution : ${sol}\n- Site ciblé : ${site}\n- Persona(s) : ${personas}\n- Angle : ${angle}\n- Ton : ${ton}${ctx}`;
+
+  if (state.mode === 'themes') return `Tu es un expert contenu B2B et SEO pour l'énergie industrielle.\nGénère 10 thèmes de contenu pour Newheat, opérateur de chaleur décarbonée (France).\n${base}\nIMPORTANT : réponds UNIQUEMENT avec du JSON valide, pas de texte autour, pas de markdown.\nFormat : {"themes":[{"num":1,"titre":"...","angle":"...","format":"...","conscience":"...","mot_cle":"..."}]}\n- titre : accroche percutante style LinkedIn\n- angle : problème ou insight (1-2 phrases)\n- format : post texte / carousel / témoignage / données chiffrées\n- conscience : "Problème inconscient" ou "Problème conscient" ou "En recherche de solution"\n- mot_cle : mot-clé SEO longue traîne (3-6 mots, en français)\nPrivilégie les arguments économiques (coûts, ROI) avant les arguments environnementaux.`;
+
+  if (overrideTheme) {
+    const t = overrideTheme;
+    const kw = t.mot_cle || state.seo || '';
+    const baseTheme = `${base}\nThème :\n- Titre : "${t.titre}"\n- Angle : ${t.angle}\n- Format : ${t.format}\n- Conscience prospect : ${t.conscience}${kw ? '\n- Mot-clé SEO : "' + kw + '"' : ''}`;
+    if (state.mode === 'linkedin') return `Tu es expert copywriting B2B LinkedIn énergie industrielle.\nRédige 2 variantes de posts LinkedIn pour Newheat sur ce thème.\n${baseTheme}\nStructure : hook (1-2 lignes) → développement (5-8 lignes) → CTA.\nContraintes : 150-250 mots, argument économique en premier, 3-5 hashtags, max 2 emojis.\nPrésente les 2 variantes séparées avec conseil sur laquelle tester en premier.`;
+    return `Tu es expert content marketing B2B et SEO énergie industrielle.\nRédige un article de blog optimisé SEO pour Newheat sur ce thème.\n${baseTheme}\nStructure : H1 avec mot-clé + bénéfice → méta-description (155 car.) → intro ~150 mots → H2 enjeu business → H2 solution → H2 preuves/ROI → encart Newheat (80 mots) → conclusion + CTA.\nContraintes : 1200-1500 mots, mot-clé dans H1/intro/un H2/conclusion, arguments économiques en priorité, CTA orienté action.`;
+  }
+
+  if (state.mode === 'linkedin') return `Tu es expert copywriting B2B LinkedIn énergie industrielle.\nRédige 2 variantes de posts LinkedIn pour Newheat.\n${base}\nStructure : hook fort → développement → CTA.\nContraintes : 150-250 mots, argument économique en premier, 3-5 hashtags, max 2 emojis.\nPrésente 2 variantes séparées avec conseil sur laquelle tester en premier.`;
+
+  const seoLine = state.seo ? '\nMot-clé SEO : "' + state.seo + '"' : '';
+  return `Tu es expert content marketing B2B et SEO énergie industrielle.\nRédige un article de blog optimisé SEO pour Newheat.\n${base}${seoLine}\nStructure : H1 avec mot-clé + bénéfice → méta-description (155 car.) → intro ~150 mots → H2 enjeu business → H2 solution → H2 preuves/ROI → encart Newheat (80 mots) → conclusion + CTA.\nContraintes : 1200-1500 mots, mot-clé dans H1/intro/un H2/conclusion, arguments économiques en priorité.`;
+}
+
+function parseThemesJSON(raw) {
+  const tries = [raw, raw.trim()];
+  for (const t of tries) {
+    try {
+      const first = t.indexOf('{'), last = t.lastIndexOf('}');
+      if (first !== -1 && last > first) {
+        const parsed = JSON.parse(t.slice(first, last + 1));
+        if (parsed.themes && parsed.themes.length) return parsed.themes;
+      }
+    } catch(e) {}
+  }
+  try {
+    const m = [...raw.matchAll(/\{"num"[^}]+\}/g)];
+    if (m.length) return m.map((x,i) => { try { return JSON.parse(x[0]); } catch(e) { return {num:i+1,titre:'Thème '+(i+1),angle:'',format:'post texte',conscience:'Problème conscient',mot_cle:''}; } });
+  } catch(e) {}
+  return [];
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderThemeCards(themes) {
+  if (!themes.length) return `<div style="color:var(--text-faint);font-size:13px;padding:20px;">Impossible de parser les thèmes — clique sur Regénérer.</div>`;
+  lastThemes = themes;
+  return `<div class="themes-grid">${themes.map(t => `<div class="theme-card">
+    <div class="theme-card-header"><span class="theme-num">${t.num}.</span><span class="theme-title">${esc(t.titre)}</span></div>
+    <div class="theme-angle">${esc(t.angle)}</div>
+    <div class="theme-meta">
+      <span class="theme-tag format">${esc(t.format)}</span>
+      <span class="theme-tag conscience">${esc(t.conscience)}</span>
+      ${t.mot_cle ? `<span class="theme-tag seo-kw">🔍 ${esc(t.mot_cle)}</span>` : ''}
+    </div>
+    <div class="theme-actions">
+      <button class="theme-btn linkedin" onclick="generateFromTheme(${t.num-1},'linkedin')">🔗 Post LinkedIn</button>
+      <button class="theme-btn blog" onclick="generateFromTheme(${t.num-1},'blog')">📝 Article blog</button>
+    </div>
+  </div>`).join('')}</div>`;
+}
+
+async function generateFromTheme(idx, mode) {
+  const theme = lastThemes[idx];
+  if (!theme) return;
+  state.mode = mode;
+  document.querySelectorAll('.mode-card').forEach(x => x.classList.remove('active'));
+  const card = document.querySelector(`.mode-card[data-mode="${mode}"]`);
+  if (card) card.classList.add('active');
+  if (mode === 'blog' && theme.mot_cle) {
+    state.seo = theme.mot_cle;
+    document.getElementById('seo-input').value = theme.mot_cle;
+  }
+  updateSeoVisibility();
+  await generateContent(theme);
+  document.getElementById('output-meta').innerHTML = `<span class="breadcrumb-back" onclick="backToThemes()">← Thèmes</span> › <span style="font-size:11px;color:var(--text-muted);">${esc(theme.titre.slice(0,50))}${theme.titre.length>50?'…':''}</span>`;
+}
+
+function backToThemes() {
+  if (!lastThemes.length) return;
+  state.mode = 'themes';
+  document.querySelectorAll('.mode-card').forEach(x => x.classList.remove('active'));
+  document.querySelector('.mode-card[data-mode="themes"]').classList.add('active');
+  document.getElementById('output-title').textContent = '💡 Idées de thèmes';
+  document.getElementById('output-meta').textContent = 'Cliquez sur un thème pour générer';
+  document.getElementById('stream-out').innerHTML = renderThemeCards(lastThemes);
+  document.getElementById('copy-btn').style.display = 'none';
+  document.getElementById('regen-btn').style.display = 'flex';
+}
+
+async function generate() { await generateContent(null); }
+
+async function generateContent(overrideTheme) {
+  if (generating) return;
+  // API key handled by Cloudflare Worker proxy
+
+  generating = true;
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Génération…';
+
+  const isThemes = state.mode === 'themes';
+  const modeLabel = LABELS.mode[state.mode];
+  const solLabel = state.solution ? LABELS.solution[state.solution] : '—';
+
+  document.getElementById('empty-state').style.display = 'none';
+  const streamOut = document.getElementById('stream-out');
+  streamOut.style.display = 'block';
+  streamOut.innerHTML = '<div class="loading-bar"><div class="loading-bar-inner"></div></div><div class="stream-content" id="sc"><span style="color:var(--text-faint);font-size:13px;">Génération en cours…</span></div>';
+  document.getElementById('copy-btn').style.display = 'none';
+  document.getElementById('regen-btn').style.display = 'none';
+  document.getElementById('output-title').textContent = modeLabel;
+  if (!overrideTheme) document.getElementById('output-meta').textContent = `${solLabel} · ${state.site ? LABELS.site[state.site] : '—'}`;
+  currentOutput = '';
+
+  try {
+    const resp = await fetch('https://broad-art-b7e7.iprest.workers.dev', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: isThemes ? 4000 : 3000,
+        system: isThemes
+          ? 'You are a JSON API. Reply with ONLY valid JSON. No text before or after. No markdown. No code fences. Start with { end with }.'
+          : "Tu es l'assistant contenu de Newheat, opérateur français de chaleur décarbonée. Règle absolue : argument économique (coûts, ROI) en premier. Style professionnel et percutant.",
+        messages: [{ role: 'user', content: buildPrompt(overrideTheme) }]
+      })
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error('HTTP ' + resp.status + ' — ' + txt.substring(0, 300));
+    }
+
+    const data = await resp.json();
+    if (!data.content?.[0]?.text) throw new Error('Réponse vide. Détail : ' + JSON.stringify(data).substring(0,200));
+    currentOutput = data.content[0].text;
+
+    streamOut.querySelector('.loading-bar')?.remove();
+    const sc = document.getElementById('sc');
+
+    if (isThemes) {
+      const themes = parseThemesJSON(currentOutput);
+      streamOut.innerHTML = renderThemeCards(themes);
+      document.getElementById('output-meta').textContent = `${themes.length} thèmes · cliquez pour décliner`;
+      document.getElementById('regen-btn').style.display = 'flex';
+    } else {
+      sc.innerHTML = renderMarkdown(currentOutput);
+      sc.insertAdjacentHTML('afterend', `<div class="word-count">${currentOutput.split(/\s+/).filter(Boolean).length} mots</div>`);
+      document.getElementById('copy-btn').style.display = 'flex';
+      document.getElementById('regen-btn').style.display = 'flex';
+    }
+
+    history.unshift({ id: Date.now(), mode: state.mode, label: `${modeLabel} · ${solLabel}`, content: currentOutput });
+    if (history.length > 8) history.pop();
+    renderHistory();
+
+  } catch(err) {
+    streamOut.innerHTML = `<div style="color:#E57373;font-size:13px;padding:16px;background:rgba(229,115,115,0.08);border-radius:10px;border:1px solid rgba(229,115,115,0.2);word-break:break-word;"><strong>Erreur :</strong> ${esc(err.message)}</div>`;
+  }
+
+  generating = false;
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.5 5.5L13 7L8.5 8.5L7 13L5.5 8.5L1 7L5.5 5.5L7 1Z" fill="#0E1209"/></svg>Générer le contenu';
+}
+
+function renderMarkdown(text) {
+  return text
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^---$/gm,'<hr>').replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>').replace(/^- (.+)$/gm,'<li>$1</li>');
+}
+
+function copyOutput() {
+  navigator.clipboard.writeText(currentOutput).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ Copié !'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function renderHistory() {
+  if (!history.length) return;
+  document.getElementById('history-strip').style.display = 'flex';
+  document.getElementById('hist-chips').innerHTML = history.map((h,i) =>
+    `<div class="hist-chip ${i===0?'current':''}" onclick="loadHistory(${h.id})">${esc(h.label)}</div>`
+  ).join('');
+}
+
+function loadHistory(id) {
+  const e = history.find(h => h.id === id); if (!e) return;
+  currentOutput = e.content;
+  document.getElementById('empty-state').style.display = 'none';
+  const so = document.getElementById('stream-out'); so.style.display = 'block';
+  if (e.mode === 'themes' && lastThemes.length) {
+    so.innerHTML = renderThemeCards(lastThemes);
+    document.getElementById('regen-btn').style.display = 'flex';
+    document.getElementById('copy-btn').style.display = 'none';
+  } else {
+    so.innerHTML = `<div class="stream-content">${renderMarkdown(e.content)}</div><div class="word-count">${e.content.split(/\s+/).filter(Boolean).length} mots</div>`;
+    document.getElementById('copy-btn').style.display = 'flex';
+    document.getElementById('regen-btn').style.display = 'flex';
+  }
+  document.getElementById('output-title').textContent = LABELS.mode[e.mode];
+  document.querySelectorAll('.hist-chip').forEach(c => c.classList.remove('current'));
+  event.target.classList.add('current');
+}
+</script>
+</body>
+</html>

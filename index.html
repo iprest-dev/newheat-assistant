@@ -190,7 +190,8 @@ textarea.ctx-input::placeholder { color: var(--text-faint); }
             <option value="elec_flex">Chaudière élec. + stockage + flexibilité</option>
           </optgroup>
           <optgroup label="Stockage & flexibilité">
-            <option value="storage">Stockage thermique (standalone)</option>
+            <option value="ttes">TTES — Stockage thermique en cuves (Tank TES)</option>
+            <option value="ptes">PTES — Stockage thermique en fosse (Pit TES)</option>
             <option value="flex">Flexibilité électrique / effacement</option>
           </optgroup>
           <optgroup label="Modèles contractuels">
@@ -331,7 +332,7 @@ textarea.ctx-input::placeholder { color: var(--text-faint); }
 
 <script>
 const LABELS = {
-  solution: { solar:'solaire thermique', rcr:'récupération de chaleur fatale', geo:'géothermie', hp:'pompe à chaleur industrielle', biomasse:'biomasse / chaudière biomasse', elec:'chaudière électrique', elec_storage:'chaudière électrique + stockage thermique', elec_flex:'chaudière électrique + stockage + flexibilité électrique', storage:'stockage thermique (standalone)', flex:'flexibilité électrique / effacement', hpa:'contrat HPA gaz-indexé', tiers_inv:'modèle tiers-investisseur (opérateur)', multi:'multi-technologies / mix bas carbone', hybride:'solution hybride (renouvelable + appoint)' },
+  solution: { solar:'solaire thermique', rcr:'récupération de chaleur fatale', geo:'géothermie', hp:'pompe à chaleur industrielle', biomasse:'biomasse / chaudière biomasse', elec:'chaudière électrique', elec_storage:'chaudière électrique + stockage thermique', elec_flex:'chaudière électrique + stockage + flexibilité électrique', storage:'stockage thermique (standalone)', ttes:'TTES — stockage thermique en cuves (Tank TES)', ptes:'PTES — stockage thermique en fosse (Pit TES)', flex:'flexibilité électrique / effacement', hpa:'contrat HPA gaz-indexé', tiers_inv:'modèle tiers-investisseur (opérateur)', multi:'multi-technologies / mix bas carbone', hybride:'solution hybride (renouvelable + appoint)' },
   site: { industrie:'site industriel (process générique)', agroalim:'agroalimentaire (générique)', chimie:'chimie / pharmacie', rcu:'réseau de chaleur urbain', tertiaire:'tertiaire / bureaux', logistique:'entrepôt / logistique', laiterie:'laiteries / produits laitiers frais', dairy_powders:'dairy powders (poudres de lait, whey)', ingredients:'ingrédients alimentaires', sechage_bois:'séchage de bois / biomasse', serres:'serres maraîchères / horticulture', brasserie:'brasserie', malterie:'malterie', distillerie:'distillerie / spiritueux', conserverie:'conserverie / stérilisation', boulangerie:'boulangerie industrielle / pâtisserie', viande:'abattoir / transformation de viande', legumes:'transformation de légumes et fruits', papier:'papier / carton / cellulose', textile:'textile / teinture', plastiques:'plastiques / caoutchouc', ceramique:'céramique / verre', briques:'briques et tuiles', metallurgie:'métallurgie / traitement de surface' },
   persona: { daf:'DAF / directeur financier', dg:'DG / PDG', dsi:'directeur industriel', rse:'responsable RSE ou énergie', dtu:'directeur technique / travaux', collectivite:'collectivité / aménageur' },
   angle: { cout:'maîtrise des coûts énergie', volatilite:'élimination de la volatilité gaz', decarbonation:'décarbonation / bilan carbone', conformite:'conformité réglementaire', competitivite:'compétitivité industrielle', cas_client:"retour d'expérience client" },
